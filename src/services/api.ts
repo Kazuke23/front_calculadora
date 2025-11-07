@@ -36,7 +36,9 @@ interface ApiResponse {
   [key: string]: unknown;
 }
 
-const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Endpoint del backend - puede ser configurado mediante variable de entorno
+// Base URL sin /api porque los endpoints ya lo incluyen
+const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://micalculadoraback';
 
 /**
  * Guarda una operación en el historial (MongoDB)
@@ -45,18 +47,17 @@ const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3
  */
 export const saveOperation = async (operationData: OperationData): Promise<SavedOperation> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/calculations`, {
+    // POST /api/calc - Guardar operación en el historial
+    const response = await fetch(`${API_BASE_URL}/api/calc`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        operand1: operationData.operand1,
-        operand2: operationData.operand2,
-        operator: operationData.operator,
+        a: operationData.operand1,
+        b: operationData.operand2,
+        op: operationData.operator, // 'add', 'subtract', 'multiply', 'divide'
         result: operationData.result,
-        operationString: operationData.operationString,
-        timestamp: new Date().toISOString(),
       }),
     });
 
@@ -64,7 +65,18 @@ export const saveOperation = async (operationData: OperationData): Promise<Saved
       throw new Error('Error al guardar la operación');
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    
+    // Mapear respuesta del backend a nuestro formato
+    return {
+      id: responseData._id || responseData.id,
+      operand1: operationData.operand1,
+      operand2: operationData.operand2,
+      operator: operationData.operator,
+      result: operationData.result,
+      operationString: operationData.operationString,
+      timestamp: responseData.timestamp || new Date().toISOString(),
+    };
   } catch (error) {
     console.error('Error al guardar operación:', error);
     // Fallback: guardar en localStorage si el backend no está disponible
@@ -85,9 +97,16 @@ export const saveOperation = async (operationData: OperationData): Promise<Saved
  * @param {number} limit - Número máximo de operaciones a obtener
  * @returns {Promise<SavedOperation[]>} Array de operaciones
  */
-export const getHistory = async (limit: number = 50): Promise<SavedOperation[]> => {
+export const getHistory = async (limit: number = 50, operator?: OperatorCode): Promise<SavedOperation[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/calculations?limit=${limit}`, {
+    // GET /api/records - Listar historial (con filtro opcional por operador)
+    let url = `${API_BASE_URL}/api/records`;
+    if (operator) {
+      url += `?op=${operator}`;
+    }
+    // Nota: limit no se usa porque el backend no lo soporta en query params
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +117,19 @@ export const getHistory = async (limit: number = 50): Promise<SavedOperation[]> 
       throw new Error('Error al obtener el historial');
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Mapear respuesta del backend a nuestro formato
+    // El backend puede devolver los datos con a, b, op en lugar de operand1, operand2, operator
+    return Array.isArray(data) ? data.map((item: any) => ({
+      id: item._id || item.id,
+      operand1: item.a || item.operand1,
+      operand2: item.b || item.operand2,
+      operator: item.op || item.operator,
+      result: item.result,
+      operationString: item.operationString || `${item.a || item.operand1} ${item.op || item.operator} ${item.b || item.operand2} = ${item.result}`,
+      timestamp: item.timestamp,
+    })).slice(0, limit) : []; // Aplicar limit en el frontend
   } catch (error) {
     console.error('Error al obtener historial:', error);
     // Fallback: obtener de localStorage
@@ -114,7 +145,8 @@ export const getHistory = async (limit: number = 50): Promise<SavedOperation[]> 
  */
 export const deleteOperation = async (id: string): Promise<ApiResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/calculations/${id}`, {
+    // DELETE /api/records/:id - Eliminar operación específica
+    const response = await fetch(`${API_BASE_URL}/api/records/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -142,7 +174,8 @@ export const deleteOperation = async (id: string): Promise<ApiResponse> => {
  */
 export const deleteAllHistory = async (): Promise<ApiResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/calculations`, {
+    // DELETE /api/records - Eliminar todo el historial
+    const response = await fetch(`${API_BASE_URL}/api/records`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
