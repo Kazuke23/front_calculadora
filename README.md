@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🧮 Calculadora React con TypeScript
 
 Calculadora web moderna desarrollada con React y TypeScript, que implementa las cuatro operaciones matemáticas básicas (suma, resta, multiplicación y división) con un diseño profesional y moderno.
@@ -137,3 +138,6 @@ Desarrollado como parte del frontend de una aplicación de calculadora con integ
 ---
 
 **Última actualización**: 2025
+=======
+# front_calculadora
+>>>>>>> c8209916faf06707c3fd373c6c91a5000e6da1aa
