@@ -39,7 +39,11 @@ interface ApiResponse {
 
 // Endpoint del backend - puede ser configurado mediante variable de entorno
 // Base URL sin /api porque los endpoints ya lo incluyen
+<<<<<<< HEAD
 const API_BASE_URL: string = import.meta.env.VITE_API_URL || ' https://chat-backend-qqck.onrender.com/';
+=======
+const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://micalculadoraback.vercel.app';
+>>>>>>> 356cf3900a80b45367957c9974fb31cfba55fbef
 
 /**
  * Guarda una operación en el historial (MongoDB)
