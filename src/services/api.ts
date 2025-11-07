@@ -5,8 +5,9 @@
 
 /**
  * Tipo para códigos de operadores (sin signos especiales)
+ * Códigos del backend: add, sub, mul, div
  */
-export type OperatorCode = 'add' | 'subtract' | 'multiply' | 'divide';
+export type OperatorCode = 'add' | 'sub' | 'mul' | 'div';
 
 /**
  * Interfaz para los datos de una operación

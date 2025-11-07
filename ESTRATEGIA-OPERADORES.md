@@ -15,9 +15,9 @@ Los signos matemáticos (+, -, ×, ÷) pueden causar problemas en:
 | Signo Visual | Código Interno | Descripción |
 |-------------|----------------|-------------|
 | `+` | `add` | Suma |
-| `-` | `subtract` | Resta |
-| `×` | `multiply` | Multiplicación |
-| `÷` | `divide` | División |
+| `-` | `sub` | Resta |
+| `×` | `mul` | Multiplicación |
+| `÷` | `div` | División |
 
 ### Ventajas de esta Estrategia
 
@@ -57,9 +57,9 @@ type OperatorCode = 'add' | 'subtract' | 'multiply' | 'divide' | null;
 const signToCode = (sign: string): OperatorCode => {
   switch(sign) {
     case '+': return 'add';
-    case '-': return 'subtract';
-    case '×': return 'multiply';
-    case '÷': return 'divide';
+    case '-': return 'sub';
+    case '×': return 'mul';
+    case '÷': return 'div';
     default: return null;
   }
 };
@@ -82,9 +82,9 @@ const codeToSign = (code: OperatorCode): string => {
 const calculate = (operand1: number, operand2: number, operator: OperatorCode): number => {
   switch(operator) {
     case 'add': return operand1 + operand2;
-    case 'subtract': return operand1 - operand2;
-    case 'multiply': return operand1 * operand2;
-    case 'divide': return operand1 / operand2;
+    case 'sub': return operand1 - operand2;
+    case 'mul': return operand1 * operand2;
+    case 'div': return operand1 / operand2;
     default: throw new Error('Operador inválido');
   }
 };
@@ -96,11 +96,10 @@ const calculate = (operand1: number, operand2: number, operator: OperatorCode): 
 
 ```json
 {
-  "operand1": 5,
-  "operand2": 3,
-  "operator": "add",  // ← Código en lugar de signo
+  "a": 5,
+  "b": 3,
+  "op": "add",  // ← Código: add, sub, mul, div
   "result": 8,
-  "operationString": "5 + 3 = 8",  // ← String visual para mostrar
   "timestamp": "2025-01-11T..."
 }
 ```
@@ -117,11 +116,11 @@ const calculate = (operand1: number, operand2: number, operator: OperatorCode): 
 ### Ejemplo de Request
 
 ```json
-POST /api/calculations
+POST /api/calc
 {
-  "operand1": 5,
-  "operand2": 3,
-  "operator": "add",  // ← Código claro
+  "a": 5,
+  "b": 3,
+  "op": "add",  // ← Código: add, sub, mul, div
   "result": 8
 }
 ```
@@ -131,11 +130,10 @@ POST /api/calculations
 ```json
 {
   "_id": "...",
-  "operand1": 5,
-  "operand2": 3,
-  "operator": "add",
+  "a": 5,
+  "b": 3,
+  "op": "add",
   "result": 8,
-  "operationString": "5 + 3 = 8",
   "timestamp": "2025-01-11T..."
 }
 ```

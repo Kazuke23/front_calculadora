@@ -6,8 +6,9 @@ import History from './History';
 /**
  * Tipo para los códigos de operadores (sin signos especiales)
  * Estrategia: Usar letras para evitar problemas en URLs, APIs y bases de datos
+ * Códigos del backend: add, sub, mul, div
  */
-type OperatorCode = 'add' | 'subtract' | 'multiply' | 'divide' | null;
+type OperatorCode = 'add' | 'sub' | 'mul' | 'div' | null;
 
 /**
  * Tipo para signos visuales en la UI
@@ -15,16 +16,16 @@ type OperatorCode = 'add' | 'subtract' | 'multiply' | 'divide' | null;
 type OperatorSign = '+' | '-' | '×' | '÷';
 
 /**
- * Convierte un signo visual a código interno
+ * Convierte un signo visual a código interno (formato del backend)
  * @param sign - Signo visual del operador
- * @returns Código del operador
+ * @returns Código del operador (add, sub, mul, div)
  */
 const signToCode = (sign: OperatorSign): OperatorCode => {
   switch(sign) {
     case '+': return 'add';
-    case '-': return 'subtract';
-    case '×': return 'multiply';
-    case '÷': return 'divide';
+    case '-': return 'sub';
+    case '×': return 'mul';
+    case '÷': return 'div';
   }
 };
 
@@ -36,9 +37,9 @@ const signToCode = (sign: OperatorSign): OperatorCode => {
 const codeToSign = (code: OperatorCode): string => {
   switch(code) {
     case 'add': return '+';
-    case 'subtract': return '-';
-    case 'multiply': return '×';
-    case 'divide': return '÷';
+    case 'sub': return '-';
+    case 'mul': return '×';
+    case 'div': return '÷';
     default: return '';
   }
 };
@@ -51,9 +52,9 @@ const codeToSign = (code: OperatorCode): string => {
 const codeToText = (code: OperatorCode): string => {
   switch(code) {
     case 'add': return 'add';
-    case 'subtract': return 'subtract';
-    case 'multiply': return 'multiply';
-    case 'divide': return 'divide';
+    case 'sub': return 'sub';
+    case 'mul': return 'mul';
+    case 'div': return 'div';
     default: return '';
   }
 };
@@ -188,13 +189,13 @@ function Calculator(): React.JSX.Element {
         case 'add':
           result = previousValue + currentValue;
           break;
-        case 'subtract':
+        case 'sub':
           result = previousValue - currentValue;
           break;
-        case 'multiply':
+        case 'mul':
           result = previousValue * currentValue;
           break;
-        case 'divide':
+        case 'div':
           if (currentValue === 0) {
             setError('Error: No se puede dividir por cero');
             return null;
