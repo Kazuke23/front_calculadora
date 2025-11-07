@@ -38,7 +38,7 @@ interface ApiResponse {
 
 // Endpoint del backend - puede ser configurado mediante variable de entorno
 // Base URL sin /api porque los endpoints ya lo incluyen
-const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://micalculadoraback';
+const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://micalculadoraback.vercel.app';
 
 /**
  * Guarda una operación en el historial (MongoDB)
