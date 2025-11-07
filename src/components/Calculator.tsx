@@ -167,64 +167,10 @@ function Calculator(): React.JSX.Element {
   };
 
   /**
-   * Realiza el cálculo basado en el operador
-   * @returns {number|null} Resultado del cálculo o null si hay error
-   */
-  const calculate = (): number | null => {
-    const currentValue = parseFloat(display);
-    
-    if (previousValue === null || operator === null) {
-      return currentValue;
-    }
-
-    // Validación de valores inválidos
-    if (isNaN(previousValue) || isNaN(currentValue)) {
-      setError('Error: Valores inválidos');
-      return null;
-    }
-
-    let result: number;
-    try {
-      switch (operator) {
-        case 'add':
-          result = previousValue + currentValue;
-          break;
-        case 'sub':
-          result = previousValue - currentValue;
-          break;
-        case 'mul':
-          result = previousValue * currentValue;
-          break;
-        case 'div':
-          if (currentValue === 0) {
-            setError('Error: No se puede dividir por cero');
-            return null;
-          }
-          result = previousValue / currentValue;
-          break;
-        default:
-          return currentValue;
-      }
-
-      // Validación de resultado infinito o NaN
-      if (!isFinite(result)) {
-        setError('Error: Resultado inválido');
-        return null;
-      }
-
-      setError(null);
-      return result;
-    } catch (err) {
-      setError('Error: Operación inválida');
-      return null;
-    }
-  };
-
-  /**
    * Maneja los operadores (convierte signo visual a código interno)
    * @param {OperatorSign} sign - Signo visual del operador (+, -, ×, ÷)
    */
-  const handleOperator = (sign: OperatorSign): void => {
+  const handleOperator = useCallback((sign: OperatorSign): void => {
     const op = signToCode(sign);
     if (op === null) return;
     
@@ -232,20 +178,50 @@ function Calculator(): React.JSX.Element {
 
     // Si ya hay un operador previo, calcular primero
     if (operator && previousValue !== null && !shouldResetDisplay) {
-      const result = calculate();
-      if (result !== null) {
-        setDisplay(String(result));
-        setPreviousValue(result);
-        // Actualizar la operación con el resultado (mostrar letras)
-        setOperation(`${formatNumber(result)} ${codeToText(op)}`);
-      } else {
-        // Si hay error, no cambiar el operador
-        return;
+      // Calcular con los valores actuales
+      const currentVal = parseFloat(display);
+      let result: number | null = null;
+      
+      if (!isNaN(previousValue) && !isNaN(currentVal)) {
+        try {
+          switch (operator) {
+            case 'add':
+              result = previousValue + currentVal;
+              break;
+            case 'sub':
+              result = previousValue - currentVal;
+              break;
+            case 'mul':
+              result = previousValue * currentVal;
+              break;
+            case 'div':
+              if (currentVal === 0) {
+                setError('Error: No se puede dividir por cero');
+                return;
+              }
+              result = previousValue / currentVal;
+              break;
+          }
+          
+          if (result !== null && isFinite(result)) {
+            setDisplay(String(result));
+            setPreviousValue(result);
+            setError(null);
+            // Actualizar la operación con el resultado (mostrar letras)
+            setOperation(`${formatNumber(result)} ${codeToText(op)}`);
+          } else {
+            setError('Error: Resultado inválido');
+            return;
+          }
+        } catch (err) {
+          setError('Error: Operación inválida');
+          return;
+        }
       }
     } else {
       // Primera vez o no hay operador previo, o ya se reseteó
       // Usar el valor actual del display
-      const valueToUse = shouldResetDisplay ? previousValue : currentValue;
+      const valueToUse = shouldResetDisplay && previousValue !== null ? previousValue : currentValue;
       if (valueToUse !== null && !isNaN(valueToUse)) {
         setPreviousValue(valueToUse);
         // Mostrar la operación: "valor add" (usar letras)
@@ -256,62 +232,93 @@ function Calculator(): React.JSX.Element {
 
     setOperator(op); // Guardar código interno
     setShouldResetDisplay(true);
-  };
+  }, [display, operator, previousValue, shouldResetDisplay]);
 
   /**
    * Maneja el botón de igual (=)
    */
-  const handleEquals = async (): Promise<void> => {
+  const handleEquals = useCallback(async (): Promise<void> => {
     if (operator && previousValue !== null) {
       const currentValue = parseFloat(display);
       
       // Limpiar error previo
       setError(null);
       
-      const result = calculate();
-      
-      // Si hay error, calculate retorna null
-      if (result === null) {
+      // Validación de valores inválidos
+      if (isNaN(previousValue) || isNaN(currentValue)) {
+        setError('Error: Valores inválidos');
         return;
       }
       
-      // Si no hay error, proceder
-      const formattedResult = formatNumber(result);
-      // operationString usa letras para mostrar (no signos)
-      const operationString = `${formatNumber(previousValue)} ${codeToText(operator)} ${formatNumber(currentValue)} = ${formattedResult}`;
-      
-      setDisplay(String(result));
-      setOperation(operationString);
-      setPreviousValue(null);
-      setOperator(null);
-      setShouldResetDisplay(true);
-
-      // Guardar en historial (RF-08) - Usar código interno, no signo
+      let result: number;
       try {
-        await saveOperation({
-          operand1: previousValue,
-          operand2: currentValue,
-          operator: operator!, // Código: 'add', 'subtract', 'multiply', 'divide'
-          result: result,
-          operationString: operationString, // String visual para mostrar
-        });
+        switch (operator) {
+          case 'add':
+            result = previousValue + currentValue;
+            break;
+          case 'sub':
+            result = previousValue - currentValue;
+            break;
+          case 'mul':
+            result = previousValue * currentValue;
+            break;
+          case 'div':
+            if (currentValue === 0) {
+              setError('Error: No se puede dividir por cero');
+              return;
+            }
+            result = previousValue / currentValue;
+            break;
+          default:
+            return;
+        }
+        
+        // Validación de resultado infinito o NaN
+        if (!isFinite(result)) {
+          setError('Error: Resultado inválido');
+          return;
+        }
+        
+        // Si no hay error, proceder
+        const formattedResult = formatNumber(result);
+        // operationString usa letras para mostrar (no signos)
+        const operationString = `${formatNumber(previousValue)} ${codeToText(operator)} ${formatNumber(currentValue)} = ${formattedResult}`;
+        
+        setDisplay(String(result));
+        setOperation(operationString);
+        setPreviousValue(null);
+        setOperator(null);
+        setShouldResetDisplay(true);
+
+        // Guardar en historial (RF-08) - Usar código interno
+        try {
+          await saveOperation({
+            operand1: previousValue,
+            operand2: currentValue,
+            operator: operator, // Código: 'add', 'sub', 'mul', 'div'
+            result: result,
+            operationString: operationString, // String visual para mostrar
+          });
+        } catch (err) {
+          console.error('Error al guardar en historial:', err);
+        }
       } catch (err) {
-        console.error('Error al guardar en historial:', err);
+        setError('Error: Operación inválida');
       }
     }
-  };
+  }, [display, operator, previousValue]);
 
   /**
    * Limpia toda la calculadora (botón C)
    */
-  const handleClear = (): void => {
+  const handleClear = useCallback((): void => {
     setDisplay('0');
     setOperation('');
     setOperator(null);
     setPreviousValue(null);
     setShouldResetDisplay(false);
     setError(null);
-  };
+  }, []);
 
   /**
    * Borra el último dígito (botón ←)
@@ -465,7 +472,7 @@ function Calculator(): React.JSX.Element {
     return () => {
       window.removeEventListener('keydown', handleKeyPress);
     };
-  }, [handleNumberMemo, handleDecimalMemo, handleBackspaceMemo]);
+  }, [handleNumberMemo, handleDecimalMemo, handleBackspaceMemo, handleOperator, handleEquals, handleClear]);
 
   // Formatea el display para mostrar con comas
   const displayFormatted = formatNumber(parseFloat(display));

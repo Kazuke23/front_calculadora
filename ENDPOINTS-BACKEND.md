@@ -29,7 +29,7 @@ http://micalculadoraback
 **Parámetros:**
 - `a` (number): Primer operando
 - `b` (number): Segundo operando
-- `op` (string): Operador - `"add"`, `"subtract"`, `"multiply"`, `"divide"`
+- `op` (string): Operador - `"add"`, `"sub"`, `"mul"`, `"div"`
 - `result` (number): Resultado de la operación
 
 **Response:**
@@ -56,7 +56,7 @@ http://micalculadoraback
 **URL:** `http://micalculadoraback/api/records`
 
 **Query Params (opcional):**
-- `op` (string): Filtrar por operador - `"add"`, `"subtract"`, `"multiply"`, `"divide"`
+- `op` (string): Filtrar por operador - `"add"`, `"sub"`, `"mul"`, `"div"`
 
 **Ejemplo:**
 ```
@@ -146,7 +146,7 @@ El servicio API mapea automáticamente:
 
 ## 📝 Notas
 
-1. **Formato de Operadores:** El backend espera códigos de letras (`add`, `subtract`, `multiply`, `divide`), NO signos.
+1. **Formato de Operadores:** El backend espera códigos de letras cortos (`add`, `sub`, `mul`, `div`), NO signos.
 
 2. **Mapeo Automático:** El servicio API convierte automáticamente entre el formato del frontend y el formato del backend.
 

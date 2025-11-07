@@ -71,12 +71,12 @@ Si el backend no está disponible, el sistema automáticamente:
 
 ## 📝 Formato de Datos
 
-### Operador (operator)
-Los operadores se envían como códigos de letras:
+### Operador (op)
+Los operadores se envían como códigos de letras cortos (formato del backend):
 - `"add"` - Suma
-- `"subtract"` - Resta
-- `"multiply"` - Multiplicación
-- `"divide"` - División
+- `"sub"` - Resta
+- `"mul"` - Multiplicación
+- `"div"` - División
 
 **NO se usan signos** (`+`, `-`, `×`, `÷`) para evitar problemas en URLs y bases de datos.
 
@@ -84,11 +84,10 @@ Los operadores se envían como códigos de letras:
 
 ```json
 {
-  "operand1": 5,
-  "operand2": 3,
-  "operator": "add",
+  "a": 5,
+  "b": 3,
+  "op": "add",
   "result": 8,
-  "operationString": "5 add 3 = 8",
   "timestamp": "2025-01-11T12:00:00.000Z"
 }
 ```
