@@ -94,18 +94,52 @@ export const saveOperation = async (operationData: OperationData): Promise<Saved
 };
 
 /**
+ * Interfaz para la respuesta del historial del backend
+ * Estructura exacta del backend tal cual como se recibe
+ */
+interface HistoryResponse {
+  ok: boolean;
+  items: Array<{
+    meta: {
+      ip: string;
+      userAgent: string;
+    };
+    _id: string;
+    op: OperatorCode;
+    a: number;
+    b: number;
+    result: number;
+    ok: boolean;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+/**
  * Obtiene el historial de operaciones desde MongoDB
  * @param {number} limit - Número máximo de operaciones a obtener
+ * @param {OperatorCode} operator - Filtro opcional por operador
  * @returns {Promise<SavedOperation[]>} Array de operaciones
  */
 export const getHistory = async (limit: number = 50, operator?: OperatorCode): Promise<SavedOperation[]> => {
   try {
     // GET /api/records - Listar historial (con filtro opcional por operador)
     let url = `${API_BASE_URL}/api/records`;
+    const params = new URLSearchParams();
     if (operator) {
-      url += `?op=${operator}`;
+      params.append('op', operator);
     }
-    // Nota: limit no se usa porque el backend no lo soporta en query params
+    if (limit) {
+      params.append('limit', limit.toString());
+    }
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
     
     const response = await fetch(url, {
       method: 'GET',
@@ -118,19 +152,23 @@ export const getHistory = async (limit: number = 50, operator?: OperatorCode): P
       throw new Error('Error al obtener el historial');
     }
 
-    const data = await response.json();
+    const data: HistoryResponse = await response.json();
     
-    // Mapear respuesta del backend a nuestro formato
-    // El backend puede devolver los datos con a, b, op en lugar de operand1, operand2, operator
-    return Array.isArray(data) ? data.map((item: any) => ({
-      id: item._id || item.id,
-      operand1: item.a || item.operand1,
-      operand2: item.b || item.operand2,
-      operator: item.op || item.operator,
-      result: item.result,
-      operationString: item.operationString || `${item.a || item.operand1} ${item.op || item.operator} ${item.b || item.operand2} = ${item.result}`,
-      timestamp: item.timestamp,
-    })).slice(0, limit) : []; // Aplicar limit en el frontend
+    // El backend devuelve { ok: true, items: [...], total, page, limit, pages }
+    if (data.ok && Array.isArray(data.items)) {
+      // Mapear items del backend a nuestro formato
+      return data.items.map((item) => ({
+        id: item._id,
+        operand1: item.a,
+        operand2: item.b,
+        operator: item.op,
+        result: item.result,
+        operationString: `${item.a} ${item.op} ${item.b} = ${item.result}`,
+        timestamp: item.createdAt || item.updatedAt || new Date().toISOString(),
+      }));
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error al obtener historial:', error);
     // Fallback: obtener de localStorage
