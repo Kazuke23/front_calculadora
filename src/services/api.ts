@@ -42,6 +42,73 @@ interface ApiResponse {
 const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://chat-backend-qqck.onrender.com';
 
 /**
+ * Interfaz para calcular una operación (sin resultado)
+ */
+export interface CalculateOperationData {
+  operand1: number;
+  operand2: number;
+  operator: OperatorCode;
+}
+
+/**
+ * Calcula una operación en el backend y devuelve el resultado
+ * El backend calcula el resultado y lo guarda automáticamente
+ * @param {CalculateOperationData} operationData - Datos de la operación (sin resultado)
+ * @returns {Promise<SavedOperation>} Operación calculada y guardada
+ */
+export const calculateOperation = async (operationData: CalculateOperationData): Promise<SavedOperation> => {
+  try {
+    // POST /api/calc - El backend calcula el resultado automáticamente
+    const response = await fetch(`${API_BASE_URL}/api/calc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        a: operationData.operand1,
+        b: operationData.operand2,
+        op: operationData.operator, // 'add', 'sub', 'mul', 'div'
+        // No enviamos result, el backend lo calcula
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Error al calcular la operación');
+    }
+
+    const responseData = await response.json();
+    
+    // El backend devuelve la operación con el resultado calculado
+    const result = responseData.result;
+    
+    // Crear string de operación para mostrar
+    const operatorSigns: Record<OperatorCode, string> = {
+      add: '+',
+      sub: '-',
+      mul: '×',
+      div: '÷',
+    };
+    const operatorSign = operatorSigns[operationData.operator] || operationData.operator;
+    const operationString = `${operationData.operand1} ${operatorSign} ${operationData.operand2} = ${result}`;
+    
+    // Mapear respuesta del backend a nuestro formato
+    return {
+      id: responseData._id || responseData.id,
+      operand1: operationData.operand1,
+      operand2: operationData.operand2,
+      operator: operationData.operator,
+      result: result,
+      operationString: operationString,
+      timestamp: responseData.timestamp || responseData.createdAt || new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('Error al calcular operación:', error);
+    throw error; // Re-lanzar el error para que el componente lo maneje
+  }
+};
+
+/**
  * Guarda una operación en el historial (MongoDB)
  * @param {OperationData} operationData - Datos de la operación
  * @returns {Promise<SavedOperation>} Operación guardada

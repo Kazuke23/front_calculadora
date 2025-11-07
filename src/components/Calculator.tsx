@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import '../styles/Calculator.css';
-import { saveOperation } from '../services/api';
+import { calculateOperation } from '../services/api';
 import History from './History';
 
 /**
@@ -89,6 +89,9 @@ function Calculator(): React.JSX.Element {
   
   // Estado para controlar el historial
   const [showHistory, setShowHistory] = useState<boolean>(false);
+  
+  // Estado para loading mientras se calcula en el backend
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /**
    * Formatea números para mostrar con separadores de miles
@@ -168,6 +171,7 @@ function Calculator(): React.JSX.Element {
 
   /**
    * Maneja los operadores (convierte signo visual a código interno)
+   * El frontend solo espera resultados del backend, no calcula localmente
    * @param {OperatorSign} sign - Signo visual del operador (+, -, ×, ÷)
    */
   const handleOperator = useCallback((sign: OperatorSign): void => {
@@ -176,48 +180,12 @@ function Calculator(): React.JSX.Element {
     
     const currentValue = parseFloat(display);
 
-    // Si ya hay un operador previo, calcular primero
+    // Si ya hay un operador previo, simplemente cambiar el operador
+    // El cálculo se hace solo cuando se presiona "="
     if (operator && previousValue !== null && !shouldResetDisplay) {
-      // Calcular con los valores actuales
-      const currentVal = parseFloat(display);
-      let result: number | null = null;
-      
-      if (!isNaN(previousValue) && !isNaN(currentVal)) {
-        try {
-          switch (operator) {
-            case 'add':
-              result = previousValue + currentVal;
-              break;
-            case 'sub':
-              result = previousValue - currentVal;
-              break;
-            case 'mul':
-              result = previousValue * currentVal;
-              break;
-            case 'div':
-              if (currentVal === 0) {
-                setError('Error: No se puede dividir por cero');
-                return;
-              }
-              result = previousValue / currentVal;
-              break;
-          }
-          
-          if (result !== null && isFinite(result)) {
-            setDisplay(String(result));
-            setPreviousValue(result);
-            setError(null);
-            // Actualizar la operación con el resultado (mostrar letras)
-            setOperation(`${formatNumber(result)} ${codeToText(op)}`);
-          } else {
-            setError('Error: Resultado inválido');
-            return;
-          }
-        } catch (err) {
-          setError('Error: Operación inválida');
-          return;
-        }
-      }
+      // Solo cambiar el operador, no calcular
+      const formattedValue = formatNumber(previousValue);
+      setOperation(`${formattedValue} ${codeToText(op)}`);
     } else {
       // Primera vez o no hay operador previo, o ya se reseteó
       // Usar el valor actual del display
@@ -236,6 +204,7 @@ function Calculator(): React.JSX.Element {
 
   /**
    * Maneja el botón de igual (=)
+   * Envía la operación al backend para que calcule el resultado
    */
   const handleEquals = useCallback(async (): Promise<void> => {
     if (operator && previousValue !== null) {
@@ -250,60 +219,41 @@ function Calculator(): React.JSX.Element {
         return;
       }
       
-      let result: number;
+      // Validación de división por cero (antes de enviar al backend)
+      if (operator === 'div' && currentValue === 0) {
+        setError('Error: No se puede dividir por cero');
+        return;
+      }
+      
+      // Activar loading
+      setIsLoading(true);
+      
       try {
-        switch (operator) {
-          case 'add':
-            result = previousValue + currentValue;
-            break;
-          case 'sub':
-            result = previousValue - currentValue;
-            break;
-          case 'mul':
-            result = previousValue * currentValue;
-            break;
-          case 'div':
-            if (currentValue === 0) {
-              setError('Error: No se puede dividir por cero');
-              return;
-            }
-            result = previousValue / currentValue;
-            break;
-          default:
-            return;
-        }
+        // Enviar operación al backend para que calcule el resultado
+        const savedOperation = await calculateOperation({
+          operand1: previousValue,
+          operand2: currentValue,
+          operator: operator, // Código: 'add', 'sub', 'mul', 'div'
+        });
         
-        // Validación de resultado infinito o NaN
-        if (!isFinite(result)) {
-          setError('Error: Resultado inválido');
-          return;
-        }
-        
-        // Si no hay error, proceder
+        // El backend ya calculó el resultado y lo guardó
+        const result = savedOperation.result;
         const formattedResult = formatNumber(result);
-        // operationString usa letras para mostrar (no signos)
-        const operationString = `${formatNumber(previousValue)} ${codeToText(operator)} ${formatNumber(currentValue)} = ${formattedResult}`;
         
+        // Actualizar la UI con el resultado
         setDisplay(String(result));
-        setOperation(operationString);
+        setOperation(savedOperation.operationString);
         setPreviousValue(null);
         setOperator(null);
         setShouldResetDisplay(true);
-
-        // Guardar en historial (RF-08) - Usar código interno
-        try {
-          await saveOperation({
-            operand1: previousValue,
-            operand2: currentValue,
-            operator: operator, // Código: 'add', 'sub', 'mul', 'div'
-            result: result,
-            operationString: operationString, // String visual para mostrar
-          });
-        } catch (err) {
-          console.error('Error al guardar en historial:', err);
-        }
+        
       } catch (err) {
-        setError('Error: Operación inválida');
+        console.error('Error al calcular operación:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Error: No se pudo calcular la operación';
+        setError(errorMessage);
+      } finally {
+        // Desactivar loading
+        setIsLoading(false);
       }
     }
   }, [display, operator, previousValue]);
@@ -508,8 +458,13 @@ function Calculator(): React.JSX.Element {
               {error}
             </div>
           )}
+          {isLoading && (
+            <div className="loading-display">
+              Calculando...
+            </div>
+          )}
           <div className="result-display">
-            {displayFormatted}
+            {isLoading ? '...' : displayFormatted}
           </div>
         </div>
 
